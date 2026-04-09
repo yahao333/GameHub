@@ -113,10 +113,17 @@
       canvas.height = h;
     }
     resize();
-    window.addEventListener('resize', () => { resize(); resetGame(); });
+    window.addEventListener('resize', () => { resize(); });
 
-    // Game state
-    let player, bullets, enemies, particles, score, lives, gameOver, gameStarted;
+    // Game state - initialized properly
+    let player = null;
+    let bullets = [];
+    let enemies = [];
+    let particles = [];
+    let score = 0;
+    let lives = 3;
+    let gameOver = false;
+    let gameStarted = false;
     let enemyTimer = 0;
     let lastTime = 0;
     let keys = {};
@@ -168,7 +175,7 @@
 
     // Shoot
     function shoot() {
-      if (player.cooldown <= 0) {
+      if (player && player.cooldown <= 0) {
         bullets.push({ x: player.x, y: player.y - player.h / 2, speed: 400 });
         player.cooldown = 0.15;
       }
@@ -204,7 +211,7 @@
 
     // Update
     function update(dt) {
-      if (gameOver || !gameStarted) return;
+      if (!gameStarted || gameOver) return;
 
       // Player movement
       const moveLeft = keys['arrowleft'] || keys['a'] || touchLeft;
@@ -266,7 +273,7 @@
             updateHUD();
             if (lives <= 0) {
               gameOver = true;
-              explode(player.x, player.y, '#0ff');
+              if (player) explode(player.x, player.y, '#0ff');
             }
           }
         }
@@ -303,20 +310,22 @@
 
       // Particles
       particles.forEach(p => {
-        ctx.globalAlpha = p.life * 2;
+        ctx.globalAlpha = Math.max(0, p.life * 2);
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
       });
       ctx.globalAlpha = 1;
 
       // Bullets
-      ctx.fillStyle = '#0ff';
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = '#0ff';
-      bullets.forEach(b => {
-        ctx.fillRect(b.x - 1.5, b.y - 8, 3, 16);
-      });
-      ctx.shadowBlur = 0;
+      if (bullets.length > 0) {
+        ctx.fillStyle = '#0ff';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#0ff';
+        bullets.forEach(b => {
+          ctx.fillRect(b.x - 1.5, b.y - 8, 3, 16);
+        });
+        ctx.shadowBlur = 0;
+      }
 
       // Enemies
       enemies.forEach(e => {
@@ -333,11 +342,10 @@
       });
 
       // Player
-      if (!gameOver) {
+      if (player && !gameOver) {
         ctx.fillStyle = '#0ff';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#0ff';
-        // Ship body
         ctx.beginPath();
         ctx.moveTo(player.x, player.y - player.h / 2);
         ctx.lineTo(player.x + player.w / 2, player.y + player.h / 2);
@@ -345,7 +353,6 @@
         ctx.lineTo(player.x - player.w / 2, player.y + player.h / 2);
         ctx.closePath();
         ctx.fill();
-        // Engine flame
         ctx.fillStyle = '#f80';
         ctx.shadowColor = '#f80';
         const flameH = 5 + Math.random() * 8;
@@ -368,6 +375,7 @@
         ctx.font = '16px system-ui';
         ctx.fillText('Score: ' + score, canvas.width / 2, canvas.height / 2 + 10);
         ctx.fillStyle = '#0ff';
+        ctx.font = '14px system-ui';
         ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 40);
       }
 
@@ -388,13 +396,16 @@
 
     // Game loop
     function loop(time) {
+      if (lastTime === 0) lastTime = time;
       const dt = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
 
-      // Handle start/restart
-      if ((!gameStarted || gameOver) && keys[' ']) {
+      // Handle start/restart with space
+      if (keys[' ']) {
         keys[' '] = false;
-        resetGame();
+        if (!gameStarted || gameOver) {
+          resetGame();
+        }
       }
 
       update(dt);
