@@ -175,9 +175,8 @@
 
     // Shoot
     function shoot() {
-      if (player && player.cooldown <= 0) {
+      if (player) {
         bullets.push({ x: player.x, y: player.y - player.h / 2, speed: 400 });
-        player.cooldown = 0.15;
       }
     }
 
@@ -222,8 +221,12 @@
       if (moveRight) player.x += player.speed * dt;
       player.x = Math.max(player.w / 2, Math.min(canvas.width - player.w / 2, player.x));
 
-      if (player.cooldown > 0) player.cooldown -= dt;
-      if (fire) shoot();
+      if (fire && player.cooldown <= 0) {
+        shoot();
+        player.cooldown = 0.15;
+      } else {
+        player.cooldown -= dt;
+      }
 
       // Update bullets
       for (let i = bullets.length - 1; i >= 0; i--) {
