@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Game, defaultGames } from './games';
+import { Game, loadDefaultGames } from './games';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,27 +9,43 @@ import { useI18n, Locale } from './locale.tsx';
 
 export default function App() {
   const { locale, setLocale, t } = useI18n();
-  const [games, setGames] = useState<Game[]>(defaultGames);
+  const [games, setGames] = useState<Game[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const savedGames = localStorage.getItem('gamehub_imported_games');
-    if (savedGames) {
-      try {
-        const parsed = JSON.parse(savedGames);
-        const restoredGames = parsed.map((g: any) => {
-          const blob = new Blob([g.htmlContent], { type: 'text/html' });
-          return {
-            ...g,
-            url: URL.createObjectURL(blob),
-          };
-        });
-        setGames([...defaultGames, ...restoredGames]);
-      } catch (e) {
-        console.error('[Error] Failed to load saved games:', e);
+    let cancelled = false;
+
+    async function loadGames() {
+      const defaultGames = await loadDefaultGames(locale);
+      const savedGamesJson = localStorage.getItem('gamehub_imported_games');
+
+      if (cancelled) return;
+
+      if (savedGamesJson) {
+        try {
+          const parsed = JSON.parse(savedGamesJson);
+          const restoredGames = parsed.map((g: any) => {
+            const blob = new Blob([g.htmlContent], { type: 'text/html' });
+            return {
+              ...g,
+              url: URL.createObjectURL(blob),
+            };
+          });
+          setGames([...defaultGames, ...restoredGames]);
+          return;
+        } catch (e) {
+          console.error('[Error] Failed to load saved games:', e);
+        }
       }
+      setGames(defaultGames);
     }
-  }, []);
+
+    loadGames();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();

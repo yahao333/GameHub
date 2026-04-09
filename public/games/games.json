@@ -1,0 +1,20 @@
+{
+  "games": [
+    {
+      "id": "snake",
+      "title": "Snake",
+      "titleZh": "复古贪吃蛇",
+      "description": "Classic snake game. Use arrow keys or WASD to control.",
+      "descriptionZh": "经典的贪吃蛇游戏。使用方向键或 WASD 控制蛇吃苹果，不要撞到墙壁或自己的身体！",
+      "url": "/games/snake.html"
+    },
+    {
+      "id": "pong",
+      "title": "Pong",
+      "titleZh": "双人弹球",
+      "description": "Classic two-player pong. Left player: W/S, Right player: Arrow Up/Down.",
+      "descriptionZh": "经典的双人弹球游戏。左侧玩家使用 W/S 键，右侧玩家使用上下方向键。",
+      "url": "/games/pong.html"
+    }
+  ]
+}
