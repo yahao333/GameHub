@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Gamepad2, Upload, Play, Trash2, Globe } from 'lucide-react';
-import { useI18n, Locale } from './i18n';
+import { useI18n, Locale } from './locale';
 
 export default function App() {
   const { locale, setLocale, t } = useI18n();
