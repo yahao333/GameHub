@@ -1,0 +1,5 @@
+{
+  "name": "GameHub",
+  "description": "一个展示小游戏的集合应用，用户可以浏览、游玩各种小游戏，并支持导入本地的 HTML 小游戏文件。",
+  "requestFramePermissions": []
+}
