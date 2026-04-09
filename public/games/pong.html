@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pong</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #222;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    h1 {
+      margin-bottom: 10px;
+      font-size: 2rem;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+    canvas {
+      background: #000;
+      border: 2px solid #fff;
+      max-width: 95vw;
+      max-height: 60vh;
+    }
+    .controls {
+      margin-top: 15px;
+      color: #888;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .controls span { color: #0f0; }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Pong</h1>
+  <canvas id="game"></canvas>
+  <div class="controls">
+    <span>Left:</span> W/S &nbsp;&nbsp; <span>Right:</span> ↑/↓
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    // Responsive canvas size
+    const maxW = Math.min(window.innerWidth * 0.95, 600);
+    const maxH = Math.min(window.innerHeight * 0.6, 400);
+    canvas.width = maxW;
+    canvas.height = maxH;
+
+    const paddleWidth = Math.max(8, maxW * 0.015);
+    const paddleHeight = Math.max(60, maxH * 0.2);
+    const paddleOffset = Math.max(10, maxW * 0.02);
+
+    let leftPaddleY = (maxH - paddleHeight) / 2;
+    let rightPaddleY = (maxH - paddleHeight) / 2;
+
+    const baseSpeed = Math.max(4, maxW * 0.007);
+    let ballX = maxW / 2;
+    let ballY = maxH / 2;
+    let ballDX = baseSpeed;
+    let ballDY = baseSpeed;
+    const ballRadius = Math.max(4, maxW * 0.01);
+
+    let leftScore = 0;
+    let rightScore = 0;
+    let keys = {};
+
+    function draw() {
+      // Clear
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Center line
+      ctx.setLineDash([5, 15]);
+      ctx.strokeStyle = '#444';
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Paddles
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(paddleOffset, leftPaddleY, paddleWidth, paddleHeight);
+      ctx.fillRect(canvas.width - paddleOffset - paddleWidth, rightPaddleY, paddleWidth, paddleHeight);
+
+      // Ball
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Score
+      ctx.font = 'bold 30px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(leftScore, canvas.width * 0.25, 40);
+      ctx.fillText(rightScore, canvas.width * 0.75, 40);
+    }
+
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      ballDX = -ballDX;
+      const speed = Math.sqrt(ballDX * ballDX + ballDY * ballDY);
+    }
+
+    function update() {
+      // Move paddles
+      const paddleSpeed = Math.max(6, canvas.height * 0.015);
+      if (keys['w'] && leftPaddleY > 0) leftPaddleY -= paddleSpeed;
+      if (keys['s'] && leftPaddleY < canvas.height - paddleHeight) leftPaddleY += paddleSpeed;
+      if (keys['arrowup'] && rightPaddleY > 0) rightPaddleY -= paddleSpeed;
+      if (keys['arrowdown'] && rightPaddleY < canvas.height - paddleHeight) rightPaddleY += paddleSpeed;
+
+      // Move ball
+      ballX += ballDX;
+      ballY += ballDY;
+
+      // Top/bottom bounce
+      if (ballY - ballRadius < 0 || ballY + ballRadius > canvas.height) {
+        ballDY = -ballDY;
+      }
+
+      // Left paddle collision
+      if (ballX - ballRadius < paddleOffset + paddleWidth) {
+        if (ballY > leftPaddleY && ballY < leftPaddleY + paddleHeight) {
+          ballDX = Math.abs(ballDX);
+          ballX = paddleOffset + paddleWidth + ballRadius;
+        } else if (ballX < 0) {
+          rightScore++;
+          resetBall();
+        }
+      }
+
+      // Right paddle collision
+      if (ballX + ballRadius > canvas.width - paddleOffset - paddleWidth) {
+        if (ballY > rightPaddleY && ballY < rightPaddleY + paddleHeight) {
+          ballDX = -Math.abs(ballDX);
+          ballX = canvas.width - paddleOffset - paddleWidth - ballRadius;
+        } else if (ballX > canvas.width) {
+          leftScore++;
+          resetBall();
+        }
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    document.addEventListener('keydown', function (e) {
+      keys[e.key.toLowerCase()] = true;
+      // Prevent scrolling with arrow keys
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    });
+    document.addEventListener('keyup', function (e) {
+      keys[e.key.toLowerCase()] = false;
+    });
+
+    // Touch controls for mobile
+    canvas.addEventListener('touchmove', function (e) {
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const y = touch.clientY - rect.top;
+      // Determine which side based on x position
+      if (touch.clientX < canvas.width / 2) {
+        leftPaddleY = Math.max(0, Math.min(canvas.height - paddleHeight, y - paddleHeight / 2));
+      } else {
+        rightPaddleY = Math.max(0, Math.min(canvas.height - paddleHeight, y - paddleHeight / 2));
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
