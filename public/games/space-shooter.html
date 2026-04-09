@@ -215,18 +215,10 @@
       // Player movement
       const moveLeft = keys['arrowleft'] || keys['a'] || touchLeft;
       const moveRight = keys['arrowright'] || keys['d'] || touchRight;
-      const fire = keys[' '] || touchFire;
 
       if (moveLeft) player.x -= player.speed * dt;
       if (moveRight) player.x += player.speed * dt;
       player.x = Math.max(player.w / 2, Math.min(canvas.width - player.w / 2, player.x));
-
-      if (fire && player.cooldown <= 0) {
-        shoot();
-        player.cooldown = 0.15;
-      } else {
-        player.cooldown -= dt;
-      }
 
       // Update bullets
       for (let i = bullets.length - 1; i >= 0; i--) {
@@ -405,10 +397,23 @@
 
       // Handle start/restart with space
       if (keys[' ']) {
-        keys[' '] = false;
         if (!gameStarted || gameOver) {
+          keys[' '] = false;
           resetGame();
         }
+      }
+
+      // Handle firing with space or touch
+      if (gameStarted && !gameOver && player && player.cooldown <= 0) {
+        if (keys[' '] || touchFire) {
+          shoot();
+          player.cooldown = 0.15;
+        }
+      }
+
+      // Always decrement cooldown when not firing
+      if (player && player.cooldown > 0) {
+        player.cooldown -= dt;
       }
 
       update(dt);
