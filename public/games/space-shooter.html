@@ -36,7 +36,7 @@
       background: linear-gradient(to bottom, #0a0a1a 0%, #1a1a3a 100%);
       border: 1px solid #333;
       max-width: 100vw;
-      max-height: 100vh;
+      max-height: 80vh;
     }
     .controls {
       position: absolute;
@@ -44,43 +44,54 @@
       color: #555;
       font-size: 0.8rem;
     }
+    /* Mobile controls */
     #mobile-controls {
-      position: absolute;
+      display: none;
+      position: fixed;
       bottom: 20px;
       left: 0;
       right: 0;
-      display: none;
       justify-content: space-between;
       padding: 0 20px;
       z-index: 10;
+      pointer-events: none;
     }
     .mobile-btn {
-      width: 60px;
-      height: 60px;
+      width: 65px;
+      height: 65px;
       border-radius: 50%;
-      background: rgba(0, 255, 255, 0.2);
+      background: rgba(0, 255, 255, 0.15);
       border: 2px solid rgba(0, 255, 255, 0.5);
       color: #0ff;
-      font-size: 24px;
+      font-size: 22px;
       display: flex;
       align-items: center;
       justify-content: center;
       user-select: none;
       -webkit-user-select: none;
+      pointer-events: auto;
+      touch-action: manipulation;
     }
-    .mobile-btn:active { background: rgba(0, 255, 255, 0.4); }
+    .mobile-btn:active { background: rgba(0, 255, 255, 0.35); }
     #fire-area {
-      width: 80px;
-      height: 80px;
-      background: rgba(255, 100, 0, 0.3);
-      border-color: rgba(255, 100, 0, 0.7);
+      width: 85px;
+      height: 85px;
+      background: rgba(255, 100, 0, 0.25);
+      border-color: rgba(255, 100, 0, 0.6);
       color: #f60;
-      font-size: 20px;
+      font-size: 18px;
+      font-weight: bold;
     }
-    #fire-area:active { background: rgba(255, 100, 0, 0.5); }
+    #fire-area:active { background: rgba(255, 100, 0, 0.45); }
+    .move-controls {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
     @media (pointer: coarse) {
       #mobile-controls { display: flex; }
       .controls { display: none; }
+      canvas { max-height: 65vh; }
     }
   </style>
 </head>
@@ -91,7 +102,7 @@
   </div>
   <canvas id="game"></canvas>
   <div id="mobile-controls">
-    <div style="display:flex;gap:10px;">
+    <div class="move-controls">
       <button class="mobile-btn" id="btn-left">&#9664;</button>
       <button class="mobile-btn" id="btn-right">&#9654;</button>
     </div>
@@ -108,14 +119,14 @@
     // Responsive canvas
     function resize() {
       const w = Math.min(window.innerWidth, 400);
-      const h = Math.min(window.innerHeight * 0.85, 600);
+      const h = Math.min(window.innerHeight * 0.65, 600);
       canvas.width = w;
       canvas.height = h;
     }
     resize();
     window.addEventListener('resize', () => { resize(); });
 
-    // Game state - initialized properly
+    // Game state
     let player = null;
     let bullets = [];
     let enemies = [];
@@ -360,24 +371,23 @@
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#f44';
-        ctx.font = 'bold 28px system-ui';
+        ctx.font = 'bold 26px system-ui';
         ctx.textAlign = 'center';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#f44';
         ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
         ctx.shadowBlur = 0;
         ctx.fillStyle = '#fff';
-        ctx.font = '16px system-ui';
+        ctx.font = '14px system-ui';
         ctx.fillText('Score: ' + score, canvas.width / 2, canvas.height / 2 + 10);
         ctx.fillStyle = '#0ff';
-        ctx.font = '14px system-ui';
-        ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 40);
+        ctx.fillText('Tap to Restart', canvas.width / 2, canvas.height / 2 + 40);
       }
 
       // Start screen
       if (!gameStarted) {
         ctx.fillStyle = '#0ff';
-        ctx.font = 'bold 24px system-ui';
+        ctx.font = 'bold 22px system-ui';
         ctx.textAlign = 'center';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#0ff';
@@ -385,7 +395,7 @@
         ctx.shadowBlur = 0;
         ctx.fillStyle = '#fff';
         ctx.font = '14px system-ui';
-        ctx.fillText('Press Space to Start', canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillText('Tap to Start', canvas.width / 2, canvas.height / 2 + 10);
       }
     }
 
@@ -395,15 +405,15 @@
       const dt = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
 
-      // Handle start/restart with space
-      if (keys[' ']) {
+      // Handle start/restart with space or touch
+      if (keys[' '] || touchFire) {
         if (!gameStarted || gameOver) {
-          keys[' '] = false;
+          if (keys[' ']) keys[' '] = false;
           resetGame();
         }
       }
 
-      // Handle firing with space or touch
+      // Handle firing with space or touch (continuous fire when holding)
       if (gameStarted && !gameOver && player && player.cooldown <= 0) {
         if (keys[' '] || touchFire) {
           shoot();
@@ -421,7 +431,7 @@
       requestAnimationFrame(loop);
     }
 
-    // Touch to start on mobile
+    // Touch to start/restart on mobile
     canvas.addEventListener('touchstart', () => {
       if (!gameStarted || gameOver) {
         resetGame();
